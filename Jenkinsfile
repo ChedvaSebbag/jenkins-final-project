@@ -50,34 +50,37 @@ pipeline {
             }
         }
         
-     stage('Deploy') {
-    steps {
-        echo '🚀 Deploying application...'
-        script {
-            sh '''
-            docker ps -a | grep jenkins-demo-app | awk '{print $1}' | xargs -r docker stop
-            docker ps -a | grep jenkins-demo-app | awk '{print $1}' | xargs -r docker rm
-
-            docker run -d --name jenkins-demo-app-${BUILD_NUMBER} -p 3000:3000 jenkins-demo-app:${BUILD_NUMBER}
-            sleep 5
-            curl -f http://host.docker.internal:3000/health
-            '''
+        stage('Deploy') {
+            steps {
+                echo '🚀 Deploying application...'
+                script {
+                    // Stop old containers
+                    sh '''
+                        docker ps -a | grep ${APP_NAME} | awk '{print $1}' | xargs -r docker stop || true
+                        docker ps -a | grep ${APP_NAME} | awk '{print $1}' | xargs -r docker rm || true
+                    '''
+                    
+                    // Run new container
+                    sh "docker run -d --name ${CONTAINER_NAME} -p 3000:3000 ${DOCKER_IMAGE}:${BUILD_TAG}"
+                    
+                    // Wait and test
+                    sh 'sleep 5'
+                    sh 'curl -f http://host.docker.internal:3000/health || exit 1'
+                }
+            }
         }
-    }
-}
-
         
-       stage('Verify Deployment') {
-    steps {
-        echo '✅ Verifying deployment...'
-        script {
-            sh "docker ps | grep ${CONTAINER_NAME}"
-            sh 'curl -s http://host.docker.internal:3000/health | grep "healthy"'
-            echo '✅ Application is running successfully!'
+        stage('Verify Deployment') {
+            steps {
+                echo '✅ Verifying deployment...'
+                script {
+                    sh "docker ps | grep ${CONTAINER_NAME}"
+                    sh 'curl -s http://host.docker.internal:3000 | grep "Jenkins CI/CD Demo"'
+                    echo '✅ Application is running successfully!'
+                }
+            }
         }
     }
-}
-
     
     post {
         success {
