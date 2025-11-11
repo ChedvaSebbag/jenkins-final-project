@@ -67,17 +67,17 @@ pipeline {
 }
 
         
-        stage('Verify Deployment') {
-            steps {
-                echo '✅ Verifying deployment...'
-                script {
-                    sh "docker ps | grep ${CONTAINER_NAME}"
-                    sh 'curl -s http://localhost:3000 | grep "Jenkins CI/CD Demo"'
-                    echo '✅ Application is running successfully!'
-                }
-            }
+       stage('Verify Deployment') {
+    steps {
+        echo '✅ Verifying deployment...'
+        script {
+            sh "docker ps | grep ${CONTAINER_NAME}"
+            sh 'curl -s http://host.docker.internal:3000/health | grep "healthy"'
+            echo '✅ Application is running successfully!'
         }
     }
+}
+
     
     post {
         success {
